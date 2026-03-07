@@ -38,17 +38,23 @@ class User:
         return self.total_listening_seconds() / 60
 
     def unique_tracks_listened(self) -> set[str]:
-        return set(map(lambda x: x.track, self.sessions))
+        return set(map(lambda x: x.track.track_id, self.sessions))
 
 
 @dataclass
-class FamilyMember:
+class FamilyMember(User):
     parent: FamilyAccountUser
 
 
 @dataclass
-class FamilyAccountUser:
-    sub_users: list[FamilyMember]
+class FamilyAccountUser(User):
+    sub_users: list[FamilyMember] = field(default_factory=list)
+
+    def all_members(self) -> list[User]:
+        return [self, *self.sub_users]
+
+    def add_sub_user(self, member: FamilyMember) -> None:
+        self.sub_users.append(member)
 
 
 @dataclass

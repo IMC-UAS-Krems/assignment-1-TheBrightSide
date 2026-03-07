@@ -9,7 +9,7 @@ Classes to implement:
 
 from typing import TYPE_CHECKING
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 if TYPE_CHECKING:
     from streaming.tracks import Track
@@ -20,7 +20,7 @@ class Artist:
     artist_id: str
     name: str
     genre: str
-    tracks: list[Track]
+    tracks: list[Track] = field(default_factory=list)
 
     def add_track(self, track: Track) -> None:
         self.tracks.append(track)

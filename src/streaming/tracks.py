@@ -17,7 +17,7 @@ Classes to implement:
 from typing import TYPE_CHECKING
 
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 if TYPE_CHECKING:
     from streaming.albums import Artist, Album
@@ -34,6 +34,13 @@ class Track:
     def duration_minutes(self) -> float:
         return self.duration_seconds / 60
 
+    # learned from: https://www.pythonmorsels.com/making-hashable-objects/
+    def __eq__(self, other):
+        if not isinstance(other, Track):
+            return NotImplemented
+
+        return self.track_id == other.track_id
+
 
 @dataclass
 class Song(Track):
@@ -48,13 +55,16 @@ class SingleRelease(Song):
 @dataclass
 class AlbumTrack(Song):
     track_number: int
-    album: Album | None
+    album: Album | None = None
+
+    def __post_init__(self):
+        self.artist.add_track(self)
 
 
 @dataclass
 class Podcast(Track):
     host: str
-    description: str
+    description: str = field(default_factory=str, kw_only=True)
 
 
 @dataclass

@@ -8,7 +8,7 @@ Classes to implement:
 """
 
 from typing import TYPE_CHECKING
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 if TYPE_CHECKING:
     from streaming.artists import Artist
@@ -21,10 +21,11 @@ class Album:
     title: str
     artist: Artist
     release_year: int
-    tracks: list[AlbumTrack]
+    tracks: list[AlbumTrack] = field(default_factory=list)
 
     def add_track(self, track: AlbumTrack) -> None:
-        self.tracks.append(track)
+        track.album = self
+        self.tracks.insert(track.track_number - 1, track)
 
     def track_ids(self) -> set[str]:
         return set(map(lambda x: x.track_id, self.tracks))
