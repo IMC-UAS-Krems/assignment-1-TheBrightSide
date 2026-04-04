@@ -34,10 +34,9 @@ class Track:
     def duration_minutes(self) -> float:
         return self.duration_seconds / 60
 
-    # learned from: https://www.pythonmorsels.com/making-hashable-objects/
     def __eq__(self, other):
         if not isinstance(other, Track):
-            return NotImplemented
+            return False
 
         return self.track_id == other.track_id
 
