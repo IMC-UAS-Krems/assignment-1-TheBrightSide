@@ -7,6 +7,7 @@ Classes to implement:
   - ListeningSession
 """
 
+from __future__ import annotations
 from typing import TYPE_CHECKING
 
 

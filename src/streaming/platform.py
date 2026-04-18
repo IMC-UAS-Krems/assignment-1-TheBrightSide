@@ -8,6 +8,7 @@ Classes to implement:
   - StreamingPlatform
 """
 
+from __future__ import annotations
 from streaming.tracks import Song, AlbumTrack
 from streaming.users import PremiumUser, FamilyAccountUser, FamilyMember
 from streaming.playlists import CollaborativePlaylist
