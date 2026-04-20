@@ -57,7 +57,7 @@ class StreamingPlatform:
         self._playlists[playlist.playlist_id] = playlist
 
     def record_session(self, session: ListeningSession) -> None:
-        if session.user.user_id in self._users.values():
+        if session.user.user_id in self._users.keys():
             self._users[session.user.user_id].add_session(session)
 
         self._sessions.append(session)
@@ -97,31 +97,26 @@ class StreamingPlatform:
 
     def avg_unique_tracks_per_premium_user(self, days: int = 30) -> float:
         now = datetime.now(timezone.utc)
-        last_premium_sessions = filter(
-            lambda x: (
-                isinstance(x.user, PremiumUser)
-                and (now - x.timestamp) < timedelta(days=days)
-            ),
-            self._sessions,
-        )
+        premium_users = list(filter(lambda x: isinstance(x, PremiumUser), self._users.values()))
+        if len(premium_users) == 0:
+            return 0.
 
-        grouped_by_user_sessions = [
-            list(x)
-            for _, x in groupby(
-                sorted(last_premium_sessions, key=lambda x: x.user.user_id),
-                key=lambda x: x.user.user_id,
+        return float(
+            mean(
+                map(
+                    lambda x: len(
+                        {
+                            x.track.track_id
+                            for x in filter(
+                                lambda x: (now - x.timestamp) < timedelta(days=days),
+                                x.sessions,
+                            )
+                        }
+                    ),
+                    premium_users,
+                )
             )
-        ]
-
-        if len(grouped_by_user_sessions) == 0:
-            return 0.0
-
-        grouped_distinct_count = [
-            len(set(map(lambda x: x.track.track_id, x)))
-            for x in grouped_by_user_sessions
-        ]
-
-        return float(mean(grouped_distinct_count))
+        )
 
     def track_with_most_distinct_listeners(self) -> Track | None:
         if len(self._sessions) == 0:
