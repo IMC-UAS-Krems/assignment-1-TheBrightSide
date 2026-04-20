@@ -81,6 +81,7 @@ class StreamingPlatform:
         return list(self._catalogue.values())
 
     def total_listening_time_minutes(self, start: datetime, end: datetime) -> float:
+        """ Calculates the total time listened between every user on the platform for a given time slice. """
         return (
             sum(
                 map(
@@ -96,6 +97,7 @@ class StreamingPlatform:
         )
 
     def avg_unique_tracks_per_premium_user(self, days: int = 30) -> float:
+        """ Calculates the mean amount of unique tracks listened per `PremiumUser` since a given amount of days. """
         now = datetime.now(timezone.utc)
         premium_users = list(filter(lambda x: isinstance(x, PremiumUser), self._users.values()))
         if len(premium_users) == 0:
@@ -119,6 +121,8 @@ class StreamingPlatform:
         )
 
     def track_with_most_distinct_listeners(self) -> Track | None:
+        """ Finds the track with the largest amount of distinct listeners """
+        
         if len(self._sessions) == 0:
             return None
 
@@ -138,6 +142,8 @@ class StreamingPlatform:
         return self._catalogue[max(grouped_distinct_users_count, key=lambda x: x[1])[0]]
 
     def avg_session_duration_by_user_type(self) -> list[tuple[str, float]]:
+        """ Calculates the average duration (in seconds) per session for each user kind """
+
         grouped_by_user_class = [
             (x, list(y))
             for x, y in groupby(
@@ -156,7 +162,8 @@ class StreamingPlatform:
     def total_listening_time_underage_sub_users_minutes(
         self, age_threshold: int = 18
     ) -> float:
-        # TODO: might be incorrect
+        """ Computes the total listening time for every `FamilyMember` user below a given age threshold """
+
         return sum(
             map(
                 lambda x: x.duration_listened_minutes(),
@@ -171,6 +178,8 @@ class StreamingPlatform:
         )
 
     def top_artists_by_listening_time(self, n: int = 5) -> list[tuple[Artist, float]]:
+        """ Works out the top N artists ranked by listening duration """
+
         def is_tuple_int_song(x: tuple[int, Track]) -> TypeGuard[tuple[int, Song]]:
             return isinstance(x[0], int) and isinstance(x[1], Song)
         song_sessions = filter(is_tuple_int_song, map(lambda x: (x.duration_listened_seconds, x.track), self._sessions))
@@ -189,6 +198,8 @@ class StreamingPlatform:
         return list(islice(sorted(artists_listened_duration, key=lambda x: x[1], reverse=True), n))
 
     def user_top_genre(self, user_id: str) -> tuple[str, float] | None:
+        """ Finds the given user's top genre and gives the percentage which the genre takes up """
+
         user_sessions = filter(lambda x: x.user.user_id == user_id, self._sessions)
         sessions_by_genre = [
             (x, list(y))
@@ -219,6 +230,8 @@ class StreamingPlatform:
     def collaborative_playlists_with_many_artists(
         self, threshold: int = 3
     ) -> list[CollaborativePlaylist]:
+        """ Returns a list with all collaborative playlists that have more than N amount of unique artists within their tracks """
+
         def is_song(x: Track) -> TypeGuard[Song]:
             return isinstance(x, Song)
 
@@ -243,6 +256,8 @@ class StreamingPlatform:
         )
 
     def avg_tracks_per_playlist_type(self) -> dict[str, float]:
+        """ Calculates the mean amount of tracks per playlist for every playlist kind """
+
         grouped_by_playlist_class = [
             (x, list(y))
             for x, y in groupby(
@@ -257,6 +272,8 @@ class StreamingPlatform:
         }
 
     def users_who_completed_albums(self) -> list[tuple[User, list[str]]]:
+        """ Finds users who have heard at least one entire album, as well as returning the corresponding albums """
+
         def is_album_track(x: Track) -> TypeGuard[AlbumTrack]:
             return isinstance(x, AlbumTrack)
 
