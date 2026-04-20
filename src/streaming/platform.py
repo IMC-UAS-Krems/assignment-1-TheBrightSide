@@ -17,7 +17,7 @@ from statistics import mean
 from datetime import datetime, timezone, timedelta
 from itertools import groupby, islice
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeGuard
 
 
 if TYPE_CHECKING:
@@ -30,16 +30,15 @@ if TYPE_CHECKING:
 
 
 class StreamingPlatform:
-    name: str
-    _catalogue: dict[str, Track] = {}
-    _users: dict[str, User] = {}
-    _artists: dict[str, Artist] = {}
-    _albums: dict[str, Album] = {}
-    _playlists: dict[str, Playlist] = {}
-    _sessions: list[ListeningSession] = []
 
     def __init__(self, name: str):
-        self.name = name
+        self.name: str = name
+        self._catalogue: dict[str, Track] = {}
+        self._users: dict[str, User] = {}
+        self._artists: dict[str, Artist] = {}
+        self._albums: dict[str, Album] = {}
+        self._playlists: dict[str, Playlist] = {}
+        self._sessions: list[ListeningSession] = []
 
     def add_track(self, track: Track) -> None:
         self._catalogue[track.track_id] = track
@@ -100,7 +99,7 @@ class StreamingPlatform:
         last_premium_sessions = filter(
             lambda x: (
                 isinstance(x.user, PremiumUser)
-                and (now - x.timestamp) > timedelta(days=days)
+                and (now - x.timestamp) < timedelta(days=days)
             ),
             self._sessions,
         )
@@ -121,9 +120,12 @@ class StreamingPlatform:
             for x in grouped_by_user_sessions
         ]
 
-        return mean(grouped_distinct_count)
+        return float(mean(grouped_distinct_count))
 
     def track_with_most_distinct_listeners(self) -> Track | None:
+        if len(self._sessions) == 0:
+            return None
+
         grouped_by_tracks_sessions = [
             (x, list(y))
             for x, y in groupby(
@@ -137,7 +139,7 @@ class StreamingPlatform:
             for x, y in grouped_by_tracks_sessions
         ]
 
-        return max(grouped_distinct_users_count, key=lambda x: x[1])[0]
+        return self._catalogue[max(grouped_distinct_users_count, key=lambda x: x[1])[0]]
 
     def avg_session_duration_by_user_type(self) -> list[tuple[str, float]]:
         grouped_by_user_class = [
@@ -150,7 +152,7 @@ class StreamingPlatform:
 
         return list(
             map(
-                lambda x: (x[0], mean(map(lambda y: y.duration_seconds, x[1]))),
+                lambda x: (x[0], mean(map(lambda y: y.duration_listened_seconds, x[1]))),
                 grouped_by_user_class,
             )
         )
@@ -161,31 +163,34 @@ class StreamingPlatform:
         # TODO: might be incorrect
         return sum(
             map(
-                lambda x: x.duration_listened_seconds,
+                lambda x: x.duration_listened_minutes(),
                 filter(
                     lambda x: (
                         isinstance(x.user, FamilyMember) and x.user.age < age_threshold
                     ),
                     self._sessions,
                 ),
-            )
+            ),
+            start=0.
         )
 
     def top_artists_by_listening_time(self, n: int = 5) -> list[tuple[Artist, float]]:
-        song_sessions = filter(lambda x: isinstance(x.track, Song), self._sessions)
+        def is_tuple_int_song(x: tuple[int, Track]) -> TypeGuard[tuple[int, Song]]:
+            return isinstance(x[0], int) and isinstance(x[1], Song)
+        song_sessions = filter(is_tuple_int_song, map(lambda x: (x.duration_listened_seconds, x.track), self._sessions))
         artist_song_sessions = [
             (x, list(y))
             for x, y in groupby(
-                sorted(song_sessions, key=lambda x: x.artist.artist_id),
-                key=lambda x: x.artist.artist_id,
+                sorted(song_sessions, key=lambda x: x[1].artist.artist_id),
+                key=lambda x: x[1].artist.artist_id,
             )
         ]
         artists_listened_duration = map(
-            lambda x: (x[0], sum(map(lambda y: y.duration_listened_seconds, x[1]))),
+            lambda x: (self._artists[x[0]], sum(map(lambda y: y[0], x[1])) / 60),
             artist_song_sessions,
         )
 
-        return list(islice(sorted(artists_listened_duration, key=lambda x: x[1]), n))
+        return list(islice(sorted(artists_listened_duration, key=lambda x: x[1], reverse=True), n))
 
     def user_top_genre(self, user_id: str) -> tuple[str, float] | None:
         user_sessions = filter(lambda x: x.user.user_id == user_id, self._sessions)
@@ -197,13 +202,15 @@ class StreamingPlatform:
             )
         ]
 
+        sessions_amount = sum(map(lambda x: len(x[1]), sessions_by_genre))
+
         return next(
             iter(
                 sorted(
                     map(
                         lambda x: (
                             x[0],
-                            sum(map(lambda y: y.duration_listened_seconds, x[1])),
+                            (len(x[1]) / sessions_amount) * 100.,
                         ),
                         sessions_by_genre,
                     ),
@@ -216,21 +223,26 @@ class StreamingPlatform:
     def collaborative_playlists_with_many_artists(
         self, threshold: int = 3
     ) -> list[CollaborativePlaylist]:
+        def is_song(x: Track) -> TypeGuard[Song]:
+            return isinstance(x, Song)
+
+        def is_collaborative_playlist(x: Playlist) -> TypeGuard[CollaborativePlaylist]:
+            return isinstance(x, CollaborativePlaylist)
+
         return list(
             filter(
                 lambda x: (
-                    isinstance(x, CollaborativePlaylist)
-                    and len(
+                    len(
                         set(
                             map(
                                 lambda y: y.artist.artist_id,
-                                filter(lambda y: isinstance(y, Song), x.tracks),
+                                filter(is_song, x.tracks),
                             )
                         )
                     )
                     > threshold
                 ),
-                list(self._playlists.values()),
+                filter(is_collaborative_playlist, self._playlists.values()),
             )
         )
 
