@@ -16,8 +16,9 @@ from streaming.playlists import CollaborativePlaylist
 from statistics import mean
 from datetime import datetime, timezone, timedelta
 from itertools import groupby, islice
+from functools import reduce
 
-from typing import TYPE_CHECKING, TypeGuard
+from typing import TYPE_CHECKING, TypeGuard, cast
 
 
 if TYPE_CHECKING:
@@ -261,8 +262,41 @@ class StreamingPlatform:
         }
 
     def users_who_completed_albums(self) -> list[tuple[User, list[str]]]:
-        # out = {}
-        # for user in self._users.values():
-        #     filter(lambda x: isinstance(x.track, AlbumTrack), user.sessions)
-        
-        raise NotImplementedError()
+        def is_album_track(x: Track) -> TypeGuard[AlbumTrack]:
+            return isinstance(x, AlbumTrack)
+
+        album_id_tracks = reduce(
+            lambda x, y: (
+                x + [((y.album.album_id, y.album.title), y)]
+                if is_album_track(y) and y.album is not None
+                else x
+            ),
+            self._catalogue.values(),
+            cast(list[tuple[tuple[str, str], AlbumTrack]], []),
+        )
+
+        tracks_grouped_by_albums = (
+            (x[0][1], set(map(lambda x: x[1].track_id, y)))
+            for x, y in groupby(
+                sorted(album_id_tracks, key=lambda x: x[0]),
+                key=lambda x: x[0]
+            )
+        )
+
+        sessions_grouped_by_users = (
+            (x, set(map(lambda x: x.track.track_id, y)))
+            for x, y in groupby(
+                sorted(self._sessions, key=lambda x: x.user.user_id),
+                key=lambda x: x.user.user_id
+            )
+        )
+
+        return [
+            (self._users[user_sessions[0]], [
+                album_tracks[0]
+                for album_tracks in tracks_grouped_by_albums
+                if (album_tracks[1] - user_sessions[1]) == set()
+            ])
+            for user_sessions in sessions_grouped_by_users
+        ]
+
