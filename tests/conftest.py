@@ -136,7 +136,7 @@ def platform() -> StreamingPlatform:
     # ------------------------------------------------------------------
     platform.record_session(ListeningSession("s1", alice, dd.tracks[1], RECENT, dd.tracks[1].duration_seconds))
     platform.record_session(ListeningSession("s2", alice, dd.tracks[2], RECENT, dd.tracks[2].duration_seconds))
-    platform.record_session(ListeningSession("s3", alice, dd.tracks[1], RECENT, dd.tracks[1].duration_seconds))
+    platform.record_session(ListeningSession("s3", alice, dd.tracks[1], OLD, dd.tracks[1].duration_seconds))
     platform.record_session(ListeningSession("s4", alice, dd.tracks[2], RECENT, dd.tracks[2].duration_seconds))
 
     platform.record_session(ListeningSession("s5", bob, careful_hands.tracks[0], RECENT, careful_hands.tracks[0].duration_seconds))

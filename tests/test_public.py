@@ -55,7 +55,23 @@ class TestTotalListeningTime:
     # TODO: Add a test that verifies the correct value for a known time period.
     #       Calculate the expected total based on the fixture data in conftest.py.
     def test_known_period_value(self, platform: StreamingPlatform) -> None:
-        assert False
+        start = RECENT - timedelta(hours=1)
+        end = FIXED_NOW
+        result = platform.total_listening_time_minutes(start, end)
+
+        # sum([
+        #     dd.tracks[1].duration_seconds,
+        #     dd.tracks[2].duration_seconds,
+        #     dd.tracks[2].duration_seconds,
+        #     careful_hands.tracks[0].duration_seconds,
+        #     careful_hands.tracks[2].duration_seconds,
+        #     careful_hands.tracks[3].duration_seconds,
+        #     instant_lights.tracks[2].duration_seconds,
+        #     instant_lights.tracks[0].duration_seconds,
+        #     instant_lights.tracks[2].duration_seconds,
+        #     reflections_and_riffs.tracks[1].duration_seconds,
+        # ]) / 60.
+        assert result == 2401 / 60
 
 # ===========================================================================
 # Q2 - Average unique tracks per PremiumUser in the last N days
