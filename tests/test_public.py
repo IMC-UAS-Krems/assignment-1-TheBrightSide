@@ -127,7 +127,9 @@ class TestTrackMostDistinctListeners:
     # TODO: Add a test that verifies the correct track is returned.
     #       Count listeners per track from the fixture data.
     def test_correct_track(self, platform: StreamingPlatform) -> None:
-        assert False
+        result = platform.track_with_most_distinct_listeners()
+        assert result is not None
+        assert result.track_id == "t45"
 
 
 # ===========================================================================
@@ -159,7 +161,8 @@ class TestAvgSessionDurationByType:
 
     # TODO: Add tests to verify all user types are present and have correct averages.
     def test_all_user_types_present(self, platform: StreamingPlatform) -> None:
-        assert False
+        result = platform.avg_session_duration_by_user_type()
+        assert result == [('PremiumUser', 251.5), ('FreeUser', 202.5)]
 
 
 # ===========================================================================

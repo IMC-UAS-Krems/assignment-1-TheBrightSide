@@ -144,20 +144,21 @@ class StreamingPlatform:
     def avg_session_duration_by_user_type(self) -> list[tuple[str, float]]:
         """ Calculates the average duration (in seconds) per session for each user kind """
 
-        grouped_by_user_class = [
-            (x, list(y))
-            for x, y in groupby(
-                sorted(self._sessions, key=lambda x: x.__class__.__name__),
-                key=lambda x: x.__class__.__name__,
-            )
-        ]
+        result: dict[str, list[float]] = {}
+        for user in self._users.values():
+            user_result: list[float] = []
+            for session in user.sessions:
+                user_result.append(session.duration_listened_seconds)
 
-        return list(
-            map(
-                lambda x: (x[0], mean(map(lambda y: y.duration_listened_seconds, x[1]))),
-                grouped_by_user_class,
-            )
-        )
+            if user.__class__.__name__ not in result.keys():
+                result[user.__class__.__name__] = []
+            result[user.__class__.__name__] += user_result
+        
+        return sorted([
+            (k, mean(v))
+            for k, v in result.items()
+        ], key=lambda x: x[1], reverse=True)
+
 
     def total_listening_time_underage_sub_users_minutes(
         self, age_threshold: int = 18
